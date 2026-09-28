@@ -7,24 +7,47 @@ Claude Code itself acts as the conversational layer on top, via the
 `codebase-explorer` Skill (`.claude/skills/codebase-explorer/SKILL.md`) — no
 separate LLM API key is used for querying. An optional local web UI
 (`explorer serve`) provides a graph visualization and repo-stats dashboard
-on top of the same knowledge graph — see "Web UI" below.
+on top of the same knowledge graph.
 
-See `README.md` for setup instructions and user-facing usage docs; this file
-covers development practice and architecture for anyone (or any agent)
-working on the project itself.
+## Setup
+
+```bash
+python -m venv .venv
+.venv/bin/pip install -e .
+```
+
+This installs the `explorer` console script (via `pyproject.toml`
+`[project.scripts]`) into `.venv/bin/`, so `explorer <command>` works the
+same as `.venv/bin/python -m explorer.cli <command>` once the virtualenv is
+active.
 
 ## Commands
 
 ```bash
-.venv/bin/python -m pytest -q                       # full test suite
+.venv/bin/python -m pytest -q                        # full test suite
 .venv/bin/python -m explorer.cli ingest <repo-path>  # ingest a repo
 .venv/bin/python -m explorer.cli query <subcommand> <repo-path> ...
 .venv/bin/python -m explorer.cli serve <repo-path>   # start the web UI (needs ingest first)
 ```
 
-`explorer` is also registered as a console script (`pyproject.toml`
-`[project.scripts]`), so `explorer ingest <repo-path>` works the same way
-once installed.
+## Optional: GitHub/Jira tracker linking
+
+Ingest can enrich commit data with linked GitHub PR/issue and Jira ticket
+data. This is entirely optional — copy `.env.example` to `.env` and fill in
+whichever credentials you have:
+
+```bash
+cp .env.example .env
+```
+
+- `GITHUB_TOKEN` enables GitHub PR/issue linking.
+- `JIRA_BASE_URL`, `JIRA_EMAIL`, and `JIRA_API_TOKEN` together enable Jira
+  ticket linking (all three must be set, or the step is silently skipped).
+
+All tracker access is **read-only** — see the Security section below. If no
+`.env` is present, or credentials are missing, ingest simply skips that
+step; every other feature (parsing, git history, churn analysis, docs
+indexing, web UI) works fully without it.
 
 ## Web UI
 
@@ -37,25 +60,26 @@ writes `.explorer/serve.json` as a marker for the Skill to detect while
 running, and opens the browser automatically unless `--no-browser` is
 passed.
 
-Cited nodes pushed to `/api/session/explain` (and read by `/api/graph/
-session`) carry a **role**: `"primary"` (the actual subject of the answer —
-gets full commit-history surfacing in "Related Commits", filtered by cited-
-file overlap ratio and capped per file) or `"supporting"` (cited only as
-context, e.g. a config file or doc that merely documents something — shown
-as a node but never contributes commit history). Plain string node ids are
-still accepted and treated as `"primary"` for backward compatibility. See
-`explorer/queries.py::session_graph` and `explorer/web/schemas.py`.
+Cited nodes pushed to `/api/session/explain` (and read by
+`/api/graph/session`) carry a **role**: `"primary"` (the actual subject of
+the answer — gets full commit-history surfacing in "Related Commits",
+filtered by cited-file overlap ratio and capped per file) or `"supporting"`
+(cited only as context, e.g. a config file or doc that merely documents
+something — shown as a node but never contributes commit history). Plain
+string node ids are still accepted and treated as `"primary"` for backward
+compatibility. See `explorer/queries.py::session_graph` and
+`explorer/web/schemas.py`.
 
 The frontend lives in `frontend/` (Vite + React + TypeScript, using
 `@xyflow/react` for the graph canvas and `@tanstack/react-query` for data
 fetching). During development, run the API (`explorer serve <repo-path>`)
 and `npm run dev` in `frontend/` separately — Vite's dev server proxies
-`/api/*` to the FastAPI port (see `frontend/vite.config.ts`). For a single-
-port setup, `npm run build` in `frontend/` produces `frontend/dist`, which
-`explorer serve` mounts automatically if present. Frontend end-to-end
-behavior (graph render/click/expand/collapse/filter/search/path-highlight,
-live Claude session panel) is covered by Playwright specs in
-`frontend/tests/` — run with `npm run test:e2e` inside `frontend/`.
+`/api/*` to the FastAPI port (see `frontend/vite.config.ts`). For a
+single-port setup, `npm run build` in `frontend/` produces `frontend/dist`,
+which `explorer serve` mounts automatically if present. Frontend
+end-to-end behavior (graph render/click/expand/collapse/filter/search/
+path-highlight, live Claude session panel) is covered by Playwright specs
+in `frontend/tests/` — run with `npm run test:e2e` inside `frontend/`.
 
 ## Architecture
 
@@ -125,6 +149,6 @@ comes with hard rules:
    (real env vars first, then `.env`) — never hardcode a token, never pass
    one on the command line, never log one.
 
-If a task seems to require commenting on a PR, closing an issue, transitioning
-a Jira ticket, or any other write action against these trackers, that is out
-of scope for this project — say so rather than implementing it.
+If a task seems to require commenting on a PR, closing an issue,
+transitioning a Jira ticket, or any other write action against these
+trackers, that is out of scope for this project.
