@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git init *)",
+      "Bash(pip3 show *)",
+      "Bash(.venv/bin/python3 -m pytest tests/test_store.py -q)",
+      "Bash(.venv/bin/python3 -m pytest tests/test_parser.py -q)",
+      "Bash(.venv/bin/python3 -m pytest tests/test_history_miner.py -q)",
+      "Bash(.venv/bin/python3 -m pytest tests/test_risk.py -q)",
+      "Bash(.venv/bin/python3 -m pytest -q)",
+      "Bash(.venv/bin/python3 -m pytest tests/test_docs_walker.py -q)",
+      "Bash(.venv/bin/python3 -m pytest tests/test_queries.py -q)",
+      "Bash(.venv/bin/python3 -m pytest tests/test_cli.py -q)",
+      "Edit(/.claude/skills/codebase-explorer/**)",
+      "Bash(.venv/bin/pip install *)",
+      "Bash(.venv/bin/python3 -m pytest tests/test_js_ts_parser.py -q)",
+      "Bash(.venv/bin/python3 -c ' *)"
+    ]
+  }
+}
